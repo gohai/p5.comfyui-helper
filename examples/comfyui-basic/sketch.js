@@ -1,4 +1,4 @@
-// this example workflow expects v1-5-pruned-emaonly.ckpt to be installed
+// this example workflow expects v1-5-pruned-emaonly-fp16.safetensors to be installed
 
 let workflow;
 let comfy;

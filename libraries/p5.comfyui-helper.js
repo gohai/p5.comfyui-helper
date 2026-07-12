@@ -145,8 +145,10 @@ class ComfyUiP5Helper {
     if (img.loadPixels) {
       img.loadPixels();
       data_url = img.canvas.toDataURL();
+    } else if (typeof img == 'string') {
+      data_url = img;
     } else {
-      throw "image() is currently only implemented for p5 images";
+      throw "image() is currently only implemented for p5 images and strings (expected to be a data url)";
     }
 
     return {
@@ -165,8 +167,10 @@ class ComfyUiP5Helper {
     if (img.loadPixels) {
       img.loadPixels();
       data_url = img.canvas.toDataURL();
+    } else if (typeof img == 'string') {
+      data_url = img;
     } else {
-      throw "mask() is currently only implemented for p5 images";
+      throw "mask() is currently only implemented for p5 images and strings (expected to be a data url)";
     }
 
     return {

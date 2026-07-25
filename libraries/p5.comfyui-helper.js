@@ -144,7 +144,7 @@ class ComfyUiP5Helper {
     let data_url;
     if (img.loadPixels) {
       img.loadPixels();
-      data_url = img.canvas.toDataURL();
+      data_url = img.canvas.toDataURL('image/jpeg', 0.85);
     } else if (typeof img == 'string') {
       data_url = img;
     } else {

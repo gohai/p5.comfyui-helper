@@ -1,6 +1,8 @@
 // this example workflow expects 512-inpainting-ema.safetensors to be installed
 // based on 
 
+// XXX: this example does not seem to work with latest ComfyUI
+
 let workflow;
 let comfy;
 let bg;

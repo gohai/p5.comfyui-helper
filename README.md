@@ -22,10 +22,12 @@ A library for p5.js which adds support for interacting with ComfyUI, using its A
 
 ## Prerequisites
 
-* [ComfyUI](https://github.com/comfyanonymous/ComfyUI) (tested with v0.4.51)
+* Either a self-hosted [ComfyUI](https://github.com/comfyanonymous/ComfyUI) instance (tested with v0.4.51), or a [Comfy Cloud](https://www.comfy.org/cloud) subscription (Standard, Creator or Pro tier; the Free tier doesn't include API access)
 * If you are running your own ComfyUI installation:
     * Make sure to start Comfy with the following arguments: ```--listen 0.0.0.0 --enable-cors-header '*'```
     * If the site you will be accessing Comfy from uses HTTPS, you will need to provision a certificate, and load it into ComfyUI with ```--tls-keyfile privkey.pem --tls-certfile fullchain.pem```. This is needed if you want to make use of the p5.js web editor.
+* If you are using Comfy Cloud:
+    * Get an API key from [platform.comfy.org](https://platform.comfy.org) (see [Getting an API Key](https://docs.comfy.org/development/api-development/getting-an-api-key))
 
 ## Setup
 
@@ -49,7 +51,7 @@ or, download and use a local copy of the [library file](https://github.com/gohai
 
 #### Connecting to the ComfyUI instance
 
-Create a global variable, and set up the `ComfyUiP5Helper` like so. The only argument is the URL you're using to access ComfyUI (with or without a slash at the end).
+Create a global variable, and set up the `ComfyUiP5Helper` like so. The first argument is the URL you're using to access ComfyUI (with or without a slash at the end).
 
 ```
 let comfy;
@@ -57,6 +59,29 @@ let comfy;
 function setup() {
   comfy = new ComfyUiP5Helper("https://your.comfyui.instance:8188");
 ```
+
+#### Connecting to Comfy Cloud
+
+To use [Comfy Cloud](https://www.comfy.org/cloud) instead of a self-hosted instance, pass your API key as a second argument:
+
+```
+let comfy;
+
+function setup() {
+  comfy = new ComfyUiP5Helper("https://cloud.comfy.org", "your-api-key");
+```
+
+**This alone won't work in a browser.** `cloud.comfy.org` doesn't allow browser pages to call its API directly (no CORS headers are returned for any origin, including the p5.js Web Editor), so requests made straight from a sketch will fail. To use Comfy Cloud from a p5.js sketch, deploy the small CORS proxy included in [`proxy/`](proxy/) (a few minutes, free), and point `base_url` at your deployed proxy URL instead — everything else about the call stays the same:
+
+```
+comfy = new ComfyUiP5Helper("https://your-proxy.workers.dev", "your-api-key");
+```
+
+The proxy doesn't hold or see anyone's credentials beyond relaying them, so this also works well for a group of people (e.g. a workshop) sharing one proxy URL while each using their own API key and credits. See [`proxy/README.md`](proxy/README.md) for setup.
+
+Everything below (loading workflows, running them, receiving results, image inputs) works the same way regardless of whether you're connected to a self-hosted instance or Comfy Cloud (via the proxy).
+
+Keep in mind that the Cloud API is billed against your subscription's monthly credits (the same pool the Comfy Cloud web UI draws from), and that concurrent job limits apply depending on your tier. Never commit your API key to version control.
 
 #### Loading a workflow
 
@@ -135,11 +160,13 @@ function gotImage(results, error) {
 
 The `node` property contains the id of the node that created the image.
 
+Call `loadImage()` on a `src` before starting the next run: when using Comfy Cloud the results are held in browser memory, and those of the previous run are released once a new one starts (otherwise a sketch that generates continuously would keep every image it ever received).
+
 #### Image inputs
 
 Various types of workflows, such as image-to-image or inpainting, make use of existing images as part of the image generation.
 
-The `image()` method is replacing any "Load Image" node (which loads an image from drive) by an image (or drawing context) variable in p5.js.
+The `image()` method uploads an image (or drawing surface) from p5.js, and returns the filename to use for it in the workflow. Assign it to the `image` input of any "Load Image" node, in place of the file that node would otherwise load from disk.
 
 E.g.: the following image-to-image workflow has a "Load Image" as #10
 
@@ -151,7 +178,7 @@ function preload() {
 }
 
 // ...
-workflow[10] = comfy.image(srcImg);
+workflow[10].inputs.image = comfy.image(srcImg);
 ```
 
 ```
@@ -165,8 +192,8 @@ function setup() {
   srcImg.circle(width/2, height/2, 100);
 
   // ...
-  workflow[10] = comfy.image(srcImg);
+  workflow[10].inputs.image = comfy.image(srcImg);
 }
 ```
 
-The `mask()` method can be similarly used wherever the workflow contains a "Load Image (as mask)" node.
+Images are uploaded as PNG, so anything you `erase()` stays transparent — which is what workflows that use the alpha channel as an inpainting mask need. Pass `comfy.image(srcImg, "image/jpeg")` for smaller (but opaque) uploads.

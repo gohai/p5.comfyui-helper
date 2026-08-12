@@ -25,8 +25,9 @@ function setup() {
 }
 
 function requestImage() {
-  // replace the LoadImage node with our source image
-  workflow[20] = comfy.image(srcImg);
+  // point the LoadImage node at our source image (uploaded as a PNG, so that
+  // the erased area stays transparent and can be used as the inpaint mask)
+  workflow[20].inputs.image = comfy.image(srcImg);
   // update the seed
   workflow[3].inputs.seed = workflow[3].inputs.seed + 1;
   // reduce the number of steps (to make it faster)
@@ -38,6 +39,13 @@ function requestImage() {
 function gotImage(results, err) {
   // data is an array of outputs from running the workflow
   console.log("gotImage", results);
+
+  if (err) {
+    // don't immediately try again, or a persistent error turns into a tight
+    // loop of requests (which costs credits when running against the cloud)
+    console.warn("Not retrying:", err);
+    return;
+  }
 
   // you can load them like so
   if (results.length > 0) {

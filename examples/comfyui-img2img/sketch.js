@@ -23,8 +23,8 @@ function setup() {
 }
 
 function requestImage() {
-  // replace the LoadImage node with our source image
-  workflow[10] = comfy.image(srcImg);
+  // point the LoadImage node at our source image
+  workflow[10].inputs.image = comfy.image(srcImg);
   // replace the prompt
   workflow[6].inputs.text = "idylic beach scene with a white volleyball";
   // randomize the seed
@@ -36,6 +36,13 @@ function requestImage() {
 function gotImage(data, err) {
   // data is an array of outputs from running the workflow
   console.log("gotImage", data);
+
+  if (err) {
+    // don't immediately try again, or a persistent error turns into a tight
+    // loop of requests (which costs credits when running against the cloud)
+    console.warn("Not retrying:", err);
+    return;
+  }
 
   // you can load them like so
   if (data.length > 0) {
